@@ -1,0 +1,20 @@
+ChangeLog      lists changes from one version to the next
+INSTALL        how to install this critter
+MANIFEST       you're reading it
+Makefile       controls the build
+README         a little bit about 'dired'
+classes.cc     definitions of some of our class member functions
+classes.h      declarations of the classes we use
+command1.cc    some commands from main command loop
+command2.cc    remainder of main loop commands and the loop itself
+dired.1        a man page
+dired.cc       the 'main' program
+dired.h        included by all source code
+dired.lpr      a line-printable version of 'dired.1'
+display.cc     contains code controlling the display using termcap(3)
+display.h      declarations and inlines for display.cc
+globals.cc     where globals are defined
+keys.h         definitions of all the keyboard keys we acknowledge
+version.h      the patch level
+utilities.cc   some utility functions
+

@@ -1,0 +1,253 @@
+1.2 to 1.3
+---------
+
+o No longer remove `commands.C' on `make clean'.
+
+o Fixed typo in MANIFEST.
+
+o Added `SHELL = /bin/sh' to Makefile.
+
+o Added list of machines on which `dired' has been successfully
+  built and tested to INSTALL.
+
+o Added a `#ifndef __GNUG__ ... #endif' around the prototypes of the
+  termcap(3) functions to get around some inconsistencies in the way
+  early versions of g++ declared the termcap(3) functions.  As g++ is
+  set up, the termcap funnctions are in std.h, which seems to be
+  always included by the compiler, so we don't need to declare them
+  for g++ anyhow. 
+
+o Found and fixed a problem with doing a popen(ls -al dirname) where
+  dirname is a symbolic link.  The solution is to instead do a 
+  popen(ls -al -L dirname) - force `ls' to follow symbolic links.
+
+o made `v' and 'm' edit directories if the given file is a directory,
+  instead of insisting that it can only page through regular files.
+  That is, we edit if a directory and page if a regular file.
+
+o removed the `-?' option.
+
+o added `-u' and `-c' options to sort by access time and inode-change
+  time to the already present `-t' option to sort by modification time.
+
+o added the `O' command to query for and set a sorting order.
+
+o Removed THANKS file.
+
+o Added a command `E' to edit a prompted-for directory.  This command
+  interprets a `~' as the first character in the directory as the home
+  directory of the user.
+
+o Simplified the README.
+
+1.3 to 1.4
+----------
+
+o Fixed the problem of the cursor position not being updated when we
+  do a forward search from the last line.
+
+o Documented that a response of either `y' or  `Y' to the `d' command
+  is considered affirmative. 
+
+o The screen is now cleared and the cursor positioned in the bottom
+  left-hand corner of the screen, when a file is edited.  Most
+  fullscreen editors handle this themselves.  This fix is so that
+  non-fullscreen editors such as `ed' will work.
+
+o Ctl-G now properly aborts out of the `E' command.
+
+o Added a bit more documentation on the `M' command.
+
+o Modified the copy command `c' so that if the first character of the
+  file to which we are copying is a `~', the full pathname of the
+  user's home directory will be substituted for the `~'.
+
+o Fixed a problem with how the `!' command echos the command and then
+  prints the output of the command.  The intent is that the command
+  line we're executing is echoed and then the following lines contain
+  the output of the command, as `vi' does it.
+
+
+o Am now tracking CWD and PWD, if either are defined, so that
+  commands which depend on these variables will work correctly.  In
+  particular, this means that using emacs as ones editor works
+  correctly.  Personally, I feel the fact that emacs will use CWD or
+  PWD, instead of using getcwd(), is an error.
+
+o Corrected a problem with the cursor not being properly positioned
+  when the last file in the window is deleted.
+
+1.4 to 1.5
+---------
+
+o Fixed a glitch in dired.h which was tickled when compiling with g++
+  on a machine for which -DNO_STRSTR was defined.  Found this when I
+  got dired working on an old MicroVax running Ultrix.
+
+o Closed a small memory leak in dired.C relating to not reclaiming
+  space previously passed to putenv() when tracking CWD and PWD in
+  dired().
+
+o Am no longer appending `-L' to the `ls' commands when the system
+  supports symbolic links.  This way, when you're editing a directory
+  containing symbolic links, you actually see the `link -> file'.
+  Users seem to prefer this to accessing the linked file transparently.
+
+o Closed memory leak in command1.C relating to not releasing the
+  response from prompt() in edit_prompted_for_directory().
+
+o I've come up with an easier way to deal with symbolic links
+  which has lead to a little simplification of the code.
+  In particular, I've been able to remove edit_directory() and
+  in_same_directory() from command1.C and full_path_name() from utilities.C.
+
+o Added a compile-time define NEED_LG, which when defined in the
+  Makefile, informs `dired' that `ls' needs the `-lg' flags in a long
+  listing in order to display both owner and group of the files.
+  This way all users should be able to see both the owner and group of
+  the listed files.  Modified INSTALL to NEED_LG also.
+
+o Closed a tiny memory leak due to my use of putenv().  The putenv()
+  documentation says that  the memory used by strings "NAME=value1" is
+  not recovered when a new "NAME=value2" is added; consequenty,  I've
+  started deleting the old string if I added it.  This all arises
+  since I'm now tracking CWD and PWD.
+
+o Beefed up the login in the `c' command so that we don't get more
+  than one file with the same name displayed on the screen.
+
+o Modified the `g' command to update directories in a "smart" manner.
+  It now places the cursor back on the file it started out on if that
+  file still exists; otherwise it tries to place it "close" to where
+  it was.
+
+o Modified `dired.1' and `dired.lpr' to reflect the changes to the `g'
+  and `c' commands. 
+
+o Now mention in the manpage that searches without a search string,
+  repeat the previous search in that direction.
+
+1.5 to 1.6
+---------
+
+o Am now ringing the terminal's bell when an unknown key sequence is
+  input.
+
+o The UP and DOWN arrow keys now work as expected.
+
+o Removed the `D' command.  It has proven to be too easy to abuse.
+
+o The `E' and `c' commands now support filename completion when the
+  TAB key is pressed from within the prompt asking for the file to
+  copy to or the directory to edit.
+
+o Am now updating the display when I do a `c' command which overwrites
+  another file in the window.
+
+o Am now appending the string "(C-g to Abort)" to all prompts, so that
+  those users who don't RTFM can get out of prompts :-).
+
+o The help screen now scrolls forward (SPACE) and backward (BACKSPACE).
+
+o Replaced printf()s with fputs()s wherever possible.
+
+o Added a second `const char *' argument to message(), which defaults
+  to 0.  This allows me to treat message() as either printing a simple
+  string, or as a simple printf() mechanism where it replaces the `%'
+  in the first string, with the second string.
+
+o The modeline algorithm now updates the modeline in a "smart" manner
+  intended to minimize the total number of characters output to the screen.
+
+o Replaced getchar() with read().
+
+o The `L', `S' and `r' commands now expand a `~' to the user's home
+  directory, if the `~' is the first character of the new filename.
+
+o Removed all possible system()s and instead do my own fork()ing and
+  exec()ing where it makes sense.
+
+o Modified reread_current_directory() to take a reference to a pointer
+  instead of a pointer to a pointer.
+
+o Modified get_current_directory() to return new'd storage.  Also
+  changed it's name to current_directory().  Modified get_file_name()
+  to use its own volatile storage instead of forcing its clients to
+  delete memory.  Made prompt(), completion() and expand_tilde also
+  return volatile storage.
+
+o Plugged a memory leak in get_directory_listing() in utilities.C.
+
+o Added class specific operators new() and delete() for the DirLine
+  class.  This is both a speed and space efficiency when directories
+  have many files in them.
+
+o Put all the globals into one file for easy reference.
+
+o Fixed a problem with deleting the last line on the screen, which
+  has more lines following it.
+
+1.6 to 1.7
+---------
+
+o Developed and integrated in a simple reference counted string package.
+
+o Fixed a problem with the directory name in the modeline not being
+  updated in certain cases.
+
+o Added -DSIGINTERRUPT to Makefile and INSTALL as well as adding the
+  appropriate code to dired.C to call siginterrupt(2) when needed.  I
+  rely on read(2) being interrupted by signals to deal appropriately
+  with SIGTSTP and SIGWINCH.
+
+o Added LINES and COLUMNS to the list of environment variables in the
+  manpage which dired consults.
+
+o Now update the listing line after paging through a file.  This way,
+  if we're viewing files based on access or inode-modification time, the
+  directory listing will reflect our reality, though it won't be ordered
+  properly. 
+
+o Purify'd the code.  Purify is a really nice product.
+
+o Inlined those member functions which didn't significantly bloat the
+  code. 
+
+1.7 to 1.8
+---------
+
+o removed setbuf for setvbuf -- stdout is still fully buffered, but
+  now I let the standard I/O choose the buffer and the buffer size.
+
+o added a bit more information to some of the error messages in
+  command[12].C. 
+
+o added a define OLDDELETE to Makefile and INSTALL which means that
+  your compiler doesn't understand the 'delete []' syntax.  I then
+  integrated this into the source code.
+
+o according to POSIX.1 the second argument to the execv() functions is
+  a (char *const *); my code is now cognizant of this fact.
+
+o forced the cursor to return to its previous position when aborting
+  out of a shell command.
+
+o ran c++-tame-comments from the latest c++-mode.el on each .C file.
+  This is where all the backslashes in the comments come from.
+
+o added 1992 to Copyright notice.
+
+o did some reformatting to meet new formatting requirements I've imposed on
+  myself.
+
+o got rid of <stdarg.h> function error() by overloading error for the
+  specific cases I needed.
+
+o added workaround to bug in g++ 2.2.2
+
+o changed "clean" target in Makefile to not delete files ending in
+  '~'.  A new target "realclean" does though remove them as well as
+  removing comand.C, forcing it to be regenerated at next make.
+
+o am now conditionally compiling code which depends on SIGTSTP for
+  those poor souls who don't have job control.

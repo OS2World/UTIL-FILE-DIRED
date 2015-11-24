@@ -1,0 +1,187 @@
+
+Dired is written in C++, so you must have a C++ compiler.  It runs
+only in the UNIX environment for the time being.  If you would like to
+port it to another OS, say VMS, please contact me.  It has been
+successfully built and tested in the following environments:
+
+Sun Sparc running SunOS 4.1.1 with Cfront 2.0, Cfront 2.1, g++ 2.1
+Sun Sparc running SunOS 4.0.3 with Cfront 2.1
+Sun Sparc2 running SunOS 4.0.3 with g++ 2.0
+IBM 3090 running AIX/370  with Cfront 2.0
+IBM RS/6000 running AIX 3.1.5 with Cfront 2.1, g++ 2.1
+HP9000/400 running HPUX 7.05 with Cfront 2.1
+HP9000/425 running HPUX 7.05 with Cfront 2.1
+HP9000/720 running HPUX 8.05 with Cfront 2.1
+MicroVax II running Ultrix-32 V3.0 (rev 64) running g++ 1.39
+Bull DPX/2300 (SysV) with gcc-2.1
+
+In order to build dired, a few lines in the Makefile may need to be
+modified.  The line
+
+CC = 
+
+is used to define the name of your C++ compiler.
+
+  ex.  You have some version of Cfront
+  --
+         CC = CC
+
+  ex.  you have GNU g++
+  --
+         CC = g++
+
+The line
+
+CFLAGS =
+
+is where system-specific preprocessor defines are put.  Six
+preprocessor defines, settable in 'Makefile', are the only things one
+should need to modify before typing 'make' to build dired.  Direct
+from the Makefile we have:
+
+#   Add -DNO_STRSTR if you don't have the ANSI C function strstr().
+#
+#   Add -DNO_STRCHR if you don't have strchr() and strrchr().
+#
+#   Add -DNO_SYMLINKS if your OS doesn't support symbolic links.  If
+#   you don't define this, it is assumed that your OS supports symbolic
+#   links.
+#
+#   Add -DL_AND_G if your version of `ls' needs the `-lg' flags in
+#   order to display both the owner and group of files in a long
+#   listing.  Typically, BSD-based OSs need this and SYSV ones don't.
+#
+#   Add -DCOMPLETION if you want to enable tab-completion on the `E'
+#   and `c' commands.  As currently written this assumes that you have
+#   the POSIX directory routines in <dirent.h>.  In particular, I use
+#   opendir(), readdir() and closedir().
+#
+#   Add -DOLDDELETE if your compiler can't handle the 'delete []' form
+#   of the delete operator for deleting arrays of objects allocated
+#   via new.  If you don't know whether you compiler can handle it or
+#   not, just don't define it and see what happens.  If your compiler
+#   accepts it, it'll do the right thing.
+#
+#   Add -DSIGINTERRUPT if you need to call siginterrupt(2) in order to
+#   guarantee that signals will interrupt slow system calls.  If you
+#   don't have siginterrupt(2), you most certainly don't need.  Even
+#   if you have it you may not need it, though defining -DSIGINTERRUPT
+#   in this case should be a no-op.  The best bet is to define this if
+#   you have siginterrupt(2).  Note: Suns need this.
+
+  ex.  you don't have strstr()
+  --
+         CFLAGS = -DNO_STRSTR
+
+  ex.  you don't have symbolic links or the strr?chr functions
+  --
+         CFLAGS = -DNO_SYMLINKS -DNO_STRCHR
+
+  ex.  you have <dirent.h> and you need the -lg flags to show groups  in `ls'
+  --
+         CFLAGS = -DCOMPLETION -DL_AND_G
+
+You should also add -O to CFLAGS, unless you really don't trust the
+optimization phase of your compiler.
+
+The line
+
+TERMFLAGS = 
+
+is used to set which type of terminal control your OS uses.  From the
+Makefile:
+
+# Those flags needed to compile in the type of terminal
+# control you have.  Use -DTERMIOS if you have <termios.h>, the POSIX
+# terminal control.  Use -DTERMIO if you have <termio.h>, the SYSV
+# terminal control.  Otherwise, the default assumes you have <sgtty.h>,
+# the BSD terminal control.
+#
+# If you choose to use -DTERMIOS and have problems, try -DTERMIO.  On
+# at least two systems I've tried, the vendor hasn't had all the
+# include files set up correctly to include <unistd.h> together with 
+#  <osfcn.h> among others.
+
+  ex.  on a SYSV-based system
+  --
+         TERMFLAGS = -DTERMIO
+
+  ex.  on a POSIX system
+  --
+         TERMFLAGS = -DTERMIOS
+
+  ex.  on a BSD-based system
+  --
+         TERMFLAGS =
+
+To control the screen, dired uses the termcap(3) library.  The line
+
+LIBS = 
+
+is where you set what library needs to be linked with dired in order
+to use the termcap functionality.  From the Makefile:
+
+#                   -ltermcap on BSD-like systems
+#                   -ltermlib on SYSV-like systems
+#                   -lcurses on systems w/o the above libraries
+
+  ex.  on a SYSV-based system
+  --
+         LIBS = -ltermlib
+
+  ex.  on a BSD-based system
+  --
+         LIBS = -ltermcap
+
+  ex.  on an IBM RS/6000
+  --
+         LIBS = -lcurses
+
+Once you've edited Makefile, type 'make'.  Hopefully, the make will
+complete with no problems and you will have a working 'dired'.  Then
+move the executable 'dired' to a suitable binary directory.
+
+Unfortunately, from experience, it appears that C++ code is much more
+difficult to port than C code.  The main problem seems to be header
+files.  Since every function must be prototyped before it is used, one
+necessarily includes many system include files to properly prototype
+functions, especially in an application such as dired which uses a
+fair number of system services and library functions.  When one starts
+including many include files, the inconsistencies of the files becomes
+apparent.  The most common "bug" is when two different include files
+prototype a function differently.  C++ compilers consider this as a hard
+error.  The only thing to be done in this situation is to fix the
+header file(s) and continue with the build process.
+
+Another common problem is a header file which doesn't prototype a
+function when in fact it should.  In this case your best bet is to
+manually add the prototype to 'dired.h'. 
+
+Another more fundamental problem with include files is that they are
+incompletely or inconsistently standardized.  ANSI C dictates the
+contents of only fifteen include files which are meant to cover the C
+library.  In order to use a function not covered by ANSI C, which, by
+necessity, will include all operating system specific functions, one
+must have some other scheme for deciding what file(s) to include.
+Where ANSI C stops, dired development has followed the rules proposed
+by POSIX 1003.1 as regards which file to include to get the prototype
+of some system-specific function.  Not all systems follow or even
+purport to follow the POSIX standard.
+
+The one place where this POSIX strategy may bite you are the S_ISREG
+and S_ISDIR macros.  These are an attempt by POSIX to hide the
+machinations traditionally done with the stat structure in order to
+decide upon the type of a file.  If your machine doesn't have these
+macros, you'll need to modify two functions in utilities.C in a manner
+appropriate to you machine/OS combination.  Please send me any diffs
+so I can incorporate them into the base release.
+
+If nothing else, attempting to compile dired will probably point out a
+number of deficiencies in the implementation of your header files.
+Persevere and report all bugs to your vendor.
+
+
+Mike Lijewski (W) 301-794-5132 (H) 301-982-5461
+Goddard Space Flight Center
+INTERNET: lijewski@rosserv.gsfc.nasa.gov
+SMAIL:  446 Ridge Rd. Apt. 3, Greenbelt, MD  20770

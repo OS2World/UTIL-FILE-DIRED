@@ -1,0 +1,314 @@
+.\"
+.\"  @(#) dired.1 1.24   Delta'd: 11:45:08 6/24/92   Mike Lijewski, CNSF
+.\"
+.TH DIRED 1
+.SH NAME
+dired \- a directory editor
+.SH SYNOPSIS
+.B "dired [-t | -u | -c] [dirname]"
+.br
+
+.SH DESCRIPTION
+.I Dired
+is a directory editor modelled after Dired Mode in GNU Emacs.
+It displays a window consisting of a long listing of
+.I dirname
+, or the current directory if invoked without a directory argument.
+By default, the listing is in the format of an
+.I " ls -al "
+command, which means that the listing lines are sorted alphabetically.
+The file or directory on the line
+containing the cursor is called the current file, with that line
+known as the current line.  The listing can also be sorted by the
+modification time, access time, or inode-change time of the files in
+the directory by specifying one of the options `-t', `-u', or `-c',
+respectively.   The sorting order can be changed from within
+.I dired
+by using the `O' (order) command.
+.I Dired
+provides numerous commands for operating on the current file
+including, but not limited to, 
+editing, paging, deleting, renaming, copying and compressing.
+.PP
+Commands are a superset of those in
+.I vi
+and
+.I emacs.
+.PP
+.SH COMMANDS
+In the following descriptions, ^X means control-X.
+ESC stands for the ESCAPE key; for example ESC-v means the
+two character sequence "ESCAPE", then "v".  TAB stands for the tab
+key. UP_ARROW stands for the up arrow key and DOWN_ARROW stands for
+the down arrow key, if your keyboard supports arrow keys.
+.PP
+A number of commands require arguments.  In such cases 
+.I dired
+will prompt for the necessary argument(s).  The prompt always appears in
+the last line of the window.  All graphical characters are accepted as
+legal when responding to a prompt.
+Typing a carriage return signifies the end of response.
+Typing a ^G aborts out of the prompt,
+canceling the command.  Backspace works as expected.  All other
+non-graphical characters are ignored, though signal generating keys (^C, ^\\
+and ^Z) do the right thing in a prompt as they do elsewhere in dired.
+Filename completion is
+available for the `E' and `c' commands.  Typing a tab (the TAB key)
+when in the prompt for these commands attempts to form the longest
+unique file or directory name.
+.PP
+.IP "? or H "
+Help - display a summary of these commands.
+.PP
+.IP "^V or ^F"
+Scrolls listing up one window, leaving one line of overlap between the
+windows.
+.PP
+.IP "RETURN or n or j or ^N or SPC or DOWN_ARROW"
+Move cursor to next line in listing.  Scrolls listing up one line when
+cursor is on the last line in the window.
+.PP
+.IP "^D   "
+Scrolls listing up half a window and attempts to leave the cursor
+on the same line in the listing.
+.PP
+.IP "^B or ESC-v"
+Scrolls listing down one window, leaving one line of overlap between
+the previous window and the next window.
+.PP
+.IP "k or p or ^Y or ^P or UP_ARROW"
+Move cursor to previous line in the listing.
+Scrolls listing down one line when
+cursor is on the first line in the window.
+.PP
+.IP "u or ^U"
+Scrolls the listing down half a window and attempts to leave the
+cursor on the same line in the listing.
+.PP
+.IP "^L"
+Repaint the screen.
+.PP
+.IP "< or ESC-<"
+Go to the first line in the listing.
+.PP
+.IP "> or ESC->"
+Go to the last line in the listing.
+.PP
+.IP /string
+Search forward in the listing for the next line whose filename
+contains the string.  The search starts beginning with the line
+following the current line.  A search without a string, repeats the
+previous search.
+.PP
+.IP \estring
+Search backward in the listing for a line whose filename
+contains the string.  The search starts beginning with the line
+preceding the current line.  A search without a string, repeats the
+previous search.
+.PP
+.IP V
+Prints the version number of 
+.I dired 
+being run.
+.PP
+.IP q
+Exits from the most recently edited directory back to the previously
+edited one.  Directories, when edited, are always pushed onto a stack.
+If the current directory is the only directory being edited, exits
+.I dired.
+.IP  Q
+Exits
+.I dired.
+.PP
+.IP c
+Copies the current file to another file, prompting for a name
+for the new file.  If the first letter of the name of the new file is
+a `~', the full pathname of the user's home directory will be
+substituted for the `~'.  Prompts to confirm the overwriting of an
+existing file.   Filename completion via the TAB key
+is enabled when prompting for the filename.
+.PP
+.IP d
+Deletes the current file, prompting for affirmation of the delete.
+Typing a `y' or `Y' to the prompt goes ahead with the delete.  Any other key
+cancels the delete request.
+.PP
+.IP "e or f "
+Invokes an editor to edit the current file.
+The editor is taken from the environment variable EDITOR,
+or defaults to "
+.I vi
+".
+If the file is a directory, runs 
+.I dired
+on that directory, pushing the directory currently being edited onto a
+stack.  The `q'
+command will exit from the new directory listing putting one back into
+the previous directory listing.  Editing the file `..', edits the
+parent directory of the current directory.  It is thus possible to
+walk both up and down the directory tree.
+.PP
+.IP "m or v "
+Invokes a pager on the current file.
+The pager is taken from the environment variable PAGER,
+or defaults to "
+.I more
+".
+.PP
+.IP r
+Renames the current file, prompting for the new name.
+.PP
+.IP C
+Compress the current file.
+.PP
+.IP E
+Prompts for the name of a directory to edit and then edits it.  If the
+first character of the directory is `~', the full pathname of user's
+home directory is substituted for the `~', making it easier to edit
+directories relative to the user's home directory.  Alternatively, one
+may simply type `! dired dirname';  that is,
+.I dired
+can be called from within itself.  Filename completion via the TAB key
+is enabled when prompting for the directory name.
+.PP
+.IP G
+Change the group of the current file, prompting for the new group.
+.PP
+.IP L
+Link the current file to another file, prompting for the name of the
+new file.
+.PP
+.IP M
+Change the mode of the current file, prompting for the new mode.  The
+mode can be either octal, as in `755', or symbolic as in `go+r'.
+These are the same modes the `chmod' command accepts.
+.PP
+.IP P
+Prints the current file.  The printer together with all relevant
+options are taken from the environment variable DIREDPRT.
+If DIREDPRT is not defined,
+.I lpr
+is used by default.  It should be noted that in networked
+environments,
+.I lpr
+is almost never the correct choice.
+.PP
+.IP "O      "
+Prompts for one of the characters `a', `c', `t', or `u' and changes
+the sort order to alphabetical, inode-change time,
+modification time, or access time, respectively.  The sort order only
+takes affect when a directory is first edited;
+the sort order of
+the currently displayed directory is not changed.  To change the sort
+order of the currently displayed directory, use this command to change
+the sort order and then the `g' or `R' command to re-read the current
+directory.
+.PP
+.IP "R or g "
+Rereads the current directory and updates the display.  This command
+is useful if you've executed a shell command which added, deleted or
+modified a file or files in the current directory.  Otherwise, 
+.I dired
+doesn't know that the contents of the directory have been modified.
+This command will leave the cursor on the same file it started
+on, provided that file is still in the current directory.
+.PP
+.IP S
+Create a symbolic link to the current file, prompting for the
+name of the symbolic link.
+.PP
+.IP U
+Uncompress the current file.
+.PP
+.IP !cmd
+Executes the shell command 
+.I cmd
+using
+.I system(3)
+for execution.  A `%' in
+.I cmd
+is replaced with the current filename before being executed.  This
+provides a convenient shorthand way to execute commands on the current
+file, for which the author hasn't provided a key to execute
+the command.
+.PP
+.IP !!
+Re-executes the previously issued shell command.  Does not re-expand
+any `%' characters to the name of the now current file.
+.PP
+.IP ![
+Re-executes the previously issued shell command, re-expanding any `%'
+to the name of the now current file. 
+.PP
+.IP !
+Invokes a shell.  Uses the shell in the environment variable SHELL, or
+defaults to "
+.I sh
+".
+.PP
+.SH OPTIONS
+Command line options are described below.
+.PP
+.IP -c
+Instructs
+.I dired
+to sort the files in the directory listing by inode-change time,
+instead of alphabetically, which is the default.
+.IP -t
+Instructs
+.I dired
+to sort the files in the directory listing by modification time.
+.IP -u
+Instructs
+.I dired
+to sort the files in the directory listing by access time.
+.PP
+Only one of these three options should be specified on the command
+line.  If more than one is present, the last one is the one which
+takes affect.
+
+.PP
+.IP dirname
+.I Dired
+can be invoked with or without a directory as argument.  If it is not
+passed a directory to edit, it uses the current directory.  Otherwise,
+the directory argument passed to
+.I dired
+can be an absolute pathname or a pathname relative to the current
+directory, in the usual UNIX tradition.
+
+.SH "ENVIRONMENT VARIABLES"
+.IP COLUMNS
+This value, if nonzero, overrides the number of columns as read
+from termcap(3).  Hence by setting
+.B COLUMNS
+it is easy to use a
+different number of columns than termcap(3) expects for a given
+terminal type.
+.IP DIREDPRT
+The full command name, including any necessary arguments, of the command to
+print a file.
+.IP "EDITOR  "
+The name of the editor (used by the `e' and `f' commands).
+.IP "LINES   "
+This value, if nonzero, overrides the number of lines as read
+from termcap(3).  Hence by setting
+.B LINES
+it is easy to use a
+different number of lines than termcap(3) expects for a given
+terminal type.
+.IP "PAGER   "
+The name of the pager (used by the `m' and `v' commands).
+.IP "SHELL   "
+The shell used to execute the `!' command, as well as to expand filenames.
+.IP "TERM   "
+The type of terminal on which
+.I dired
+is being run.
+.IP "HOME   "
+The user's home directory.
+
+.br
+.SH AUTHORS
+Written by Mike Lijewski while at the Cornell National Supercomputer
+Facility.

@@ -1,0 +1,1122 @@
+diff -cb orig/commands.cc ./commands.cc
+*** orig/commands.cc	Fri Nov 06 12:51:06 1992
+--- ./commands.cc	Thu Nov 19 23:22:42 1992
+***************
+*** 38,43 ****
+--- 38,50 ----
+  #include <osfcn.h>
+  #include <sys/types.h>
+  #include <sys/stat.h>
++ #ifdef __EMX__
++ #include <io.h>
++ #define chdir _chdir2
++ #define DEVNULL "nul"
++ #else
++ #define DEVNULL "/dev/null"
++ #endif
+  
+  #include "dired.h"
+  #include "display.h"
+***************
+*** 498,504 ****
+  
+  static void reread_listing_line(DirList *dl, const char *file)
+  {
+!     String cmd = String(ls_cmd[the_sort_order()]) + "'" + file + "'";
+  
+      FILE *fp = popen(cmd, "r");
+      if (fp == 0)
+--- 505,511 ----
+  
+  static void reread_listing_line(DirList *dl, const char *file)
+  {
+!     String cmd = String(ls_cmd[the_sort_order()]) + file;
+  
+      FILE *fp = popen(cmd, "r");
+      if (fp == 0)
+***************
+*** 506,512 ****
+                __FILE__, __LINE__, (const char *)cmd);
+  
+      char *new_line = fgetline(fp);
+!     if (fp == 0)
+          error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+      (void)pclose(fp);
+  
+--- 513,519 ----
+                __FILE__, __LINE__, (const char *)cmd);
+  
+      char *new_line = fgetline(fp);
+!     if (new_line == 0)
+          error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+      (void)pclose(fp);
+  
+***************
+*** 541,547 ****
+      {
+          char *editor = getenv("EDITOR");
+          if (editor == 0) editor = "vi";
+!         String cmd = String(editor) + " '" + file + "'";
+  
+          //
+          // Clear screen and position cursor in case the editor doesn\'t
+--- 548,554 ----
+      {
+          char *editor = getenv("EDITOR");
+          if (editor == 0) editor = "vi";
+!         String cmd = String(editor) + " " + file;
+  
+          //
+          // Clear screen and position cursor in case the editor doesn\'t
+***************
+*** 607,617 ****
+      {
+          char *pager = getenv("PAGER");
+          if (pager == 0) pager = "more";
+!         String cmd = String(pager) + " '" + file + "'";
+          clear_display();
+          move_to_message_line();
+          synch_display();
+!         exec_with_system(cmd);
+          if (the_sort_order() == ACCESS_TIME ||
+              the_sort_order() == INODE_CHANGE_TIME)
+              //
+--- 614,624 ----
+      {
+          char *pager = getenv("PAGER");
+          if (pager == 0) pager = "more";
+!         String cmd = String(pager) + " " + file;
+          clear_display();
+          move_to_message_line();
+          synch_display();
+!         exec_with_system(cmd, 0);
+          if (the_sort_order() == ACCESS_TIME ||
+              the_sort_order() == INODE_CHANGE_TIME)
+              //
+***************
+*** 671,678 ****
+      // pos is non-zero in those cases where `dest\' contains
+      // `..\' trickery.  Say, ../this-dir/new-file.
+      //
+!     String command = String(ls_cmd[the_sort_order()]) + "'" +
+!                      (pos ? pos + 1 : dest) + "'";
+  
+      FILE *fp = popen(command, "r");
+      if (fp == 0)
+--- 678,685 ----
+      // pos is non-zero in those cases where `dest\' contains
+      // `..\' trickery.  Say, ../this-dir/new-file.
+      //
+!     String command = String(ls_cmd[the_sort_order()]) +
+!                      (pos ? pos + 1 : dest);
+  
+      FILE *fp = popen(command, "r");
+      if (fp == 0)
+***************
+*** 680,686 ****
+                __FILE__, __LINE__, (const char *)command);
+  
+      char *new_line = fgetline(fp);
+!     if (fp == 0)
+          error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+      (void)pclose(fp);
+      
+--- 687,693 ----
+                __FILE__, __LINE__, (const char *)command);
+  
+      char *new_line = fgetline(fp);
+!     if (new_line == 0)
+          error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+      (void)pclose(fp);
+      
+***************
+*** 754,760 ****
+      message(msg);
+      char c;
+      while (1)
+!         if (read(0, &c, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 761,767 ----
+      message(msg);
+      char c;
+      while (1)
+!         if (get_key(&c) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 887,894 ****
+                          //
+                          // And it\'s also in our current window.
+                          //
+!                         String cmd = String(ls_cmd[the_sort_order()]) +
+!                                      "'" + dest + "'";
+  
+                          FILE *fp = popen(cmd, "r");
+                          if (fp == 0)
+--- 894,900 ----
+                          //
+                          // And it\'s also in our current window.
+                          //
+!                         String cmd = String(ls_cmd[the_sort_order()]) + dest;
+  
+                          FILE *fp = popen(cmd, "r");
+                          if (fp == 0)
+***************
+*** 896,902 ****
+                                    __FILE__, __LINE__, (const char *)cmd);
+  
+                          char *new_line = fgetline(fp);
+!                         if (fp == 0)
+                              error("File %s, line %d: fgetline() failed",
+                                    __FILE__, __LINE__);
+                          (void)pclose(fp);
+--- 902,908 ----
+                                    __FILE__, __LINE__, (const char *)cmd);
+  
+                          char *new_line = fgetline(fp);
+!                         if (new_line == 0)
+                              error("File %s, line %d: fgetline() failed",
+                                    __FILE__, __LINE__);
+                          (void)pclose(fp);
+***************
+*** 1008,1013 ****
+--- 1014,1020 ----
+  
+  static void link_file(DirList *dl, const char *file, const char *dest)
+  {
++ #ifndef NO_LINKS
+      if (!link(file, dest))
+      {
+          message("`link' was successful");
+***************
+*** 1021,1026 ****
+--- 1028,1034 ----
+          message("`link' failed");
+          move_cursor(dl->savedYPos(), dl->savedXPos());
+      }
++ #endif
+  }
+  
+  /*
+***************
+*** 1138,1148 ****
+          }
+          else
+          {
+-             clear_to_end_of_screen(y);
+              move_cursor(y, 0);
+              DirLine *ln = dl->currLine();
+              for (int i = y; i < rows()-2; i++, ln = ln->next())
+                  display_string(ln->line(), ln->length());
+              update_modeline();
+          }
+  
+--- 1146,1158 ----
+          }
+          else
+          {
+              move_cursor(y, 0);
+              DirLine *ln = dl->currLine();
+              for (int i = y; i < rows()-2; i++, ln = ln->next())
++ 	    {
++ 	        clear_to_end_of_line();
+                  display_string(ln->line(), ln->length());
++ 	    }
+              update_modeline();
+          }
+  
+***************
+*** 1372,1378 ****
+  
+              String command = ls_cmd[the_sort_order()];
+              if (is_dir) command += "-d";
+!             command += String("'") + dest + "'";
+  
+              FILE *fp = popen(command, "r");
+              if (fp == 0)
+--- 1382,1388 ----
+  
+              String command = ls_cmd[the_sort_order()];
+              if (is_dir) command += "-d";
+!             command += String(" ") + dest;
+  
+              FILE *fp = popen(command, "r");
+              if (fp == 0)
+***************
+*** 1380,1386 ****
+                        __FILE__, __LINE__, (const char *)command);
+  
+              char *new_line = fgetline(fp);
+!             if (fp == 0)
+                  error("File %s, line %d: fgetline() failed",
+                        __FILE__, __LINE__);
+              (void)pclose(fp);
+--- 1390,1396 ----
+                        __FILE__, __LINE__, (const char *)command);
+  
+              char *new_line = fgetline(fp);
+!             if (new_line == 0)
+                  error("File %s, line %d: fgetline() failed",
+                        __FILE__, __LINE__);
+              (void)pclose(fp);
+***************
+*** 1440,1453 ****
+  
+  static void compress_file(DirList *dl, const char *file)
+  {
+!     String cmd = String("compress") + " -f '" + file + "' 1>/dev/null 2>&1";
+  
+      if (!system(cmd))
+      {
+          message("Compressing ... ");
+  
+!         String command = String(ls_cmd[the_sort_order()]) + "'" + file +
+!                          ".Z' 2>/dev/null";
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+--- 1450,1463 ----
+  
+  static void compress_file(DirList *dl, const char *file)
+  {
+!     String cmd = String("compress") + " -f " + file + " 1>" + DEVNULL + " 2>&1";
+  
+      if (!system(cmd))
+      {
+          message("Compressing ... ");
+  
+!         String command = String(ls_cmd[the_sort_order()]) + file +
+!                          ".Z 2>" + DEVNULL;
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+***************
+*** 1521,1527 ****
+      {
+          String command = ls_cmd[the_sort_order()];
+          if (is_directory(file)) command += "-d";
+!         command += String("'") + file + "'";
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+--- 1531,1537 ----
+      {
+          String command = ls_cmd[the_sort_order()];
+          if (is_directory(file)) command += "-d";
+!         command += String(" ") + file;
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+***************
+*** 1529,1535 ****
+                    __FILE__, __LINE__, (const char *)command);
+  
+          char *new_line = fgetline(fp);
+!         if (fp == 0)
+              error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+          (void)pclose(fp);
+  
+--- 1539,1545 ----
+                    __FILE__, __LINE__, (const char *)command);
+  
+          char *new_line = fgetline(fp);
+!         if (new_line == 0)
+              error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+          (void)pclose(fp);
+  
+***************
+*** 1582,1588 ****
+      {
+          String command = ls_cmd[the_sort_order()];
+          if (is_directory(file)) command += "-d";
+!         command += String("'") + file + "'";
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+--- 1592,1598 ----
+      {
+          String command = ls_cmd[the_sort_order()];
+          if (is_directory(file)) command += "-d";
+!         command += String(" ") + file;
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+***************
+*** 1590,1596 ****
+                    __FILE__, __LINE__, (const char *)command);
+  
+          char *new_line = fgetline(fp);
+!         if (fp == 0)
+              error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+          (void)pclose(fp);
+  
+--- 1600,1606 ----
+                    __FILE__, __LINE__, (const char *)command);
+  
+          char *new_line = fgetline(fp);
+!         if (new_line == 0)
+              error("File %s, line %d: fgetline() failed", __FILE__, __LINE__);
+          (void)pclose(fp);
+  
+***************
+*** 1637,1644 ****
+  {
+      const char *file = get_file_name(dl);
+      char *printer    = getenv("DIREDPRT");
+      if (printer == 0) printer = "lpr";
+!     String cmd = String(printer) + " '" + file + "'";
+      
+      if (is_regular_file(file))
+          if (!system(cmd))
+--- 1647,1658 ----
+  {
+      const char *file = get_file_name(dl);
+      char *printer    = getenv("DIREDPRT");
++ #ifdef __EMX__
++     if (printer == 0) printer = "print";
++ #else
+      if (printer == 0) printer = "lpr";
+! #endif
+!     String cmd = String(printer) + " " + file;
+      
+      if (is_regular_file(file))
+          if (!system(cmd))
+***************
+*** 1659,1665 ****
+  
+  static void uncompress_file(DirList *dl, const char *file)
+  {
+!     String cmd = String("uncompress") + " '" + file + "' 1>/dev/null 2>&1";
+  
+      if (!system(cmd))
+      {
+--- 1673,1680 ----
+  
+  static void uncompress_file(DirList *dl, const char *file)
+  {
+!     String cmd = String("compress -d") + " " + file 
+!                + " 1>" + DEVNULL + " 2>&1";
+  
+      if (!system(cmd))
+      {
+***************
+*** 1668,1675 ****
+          char *dot = strrchr(file, '.');
+          *dot = 0;  // remove .Z suffix
+  
+!         String command = String(ls_cmd[the_sort_order()]) + "'" + file +
+!                          "' 2>/dev/null";
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+--- 1683,1690 ----
+          char *dot = strrchr(file, '.');
+          *dot = 0;  // remove .Z suffix
+  
+!         String command = String(ls_cmd[the_sort_order()]) + file +
+!                          " 2>" + DEVNULL;
+  
+          FILE *fp = popen(command, "r");
+          if (fp == 0)
+***************
+*** 1925,1931 ****
+  
+          synch_display();
+  
+!         if (read(0, &key, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 1940,1946 ----
+  
+          synch_display();
+  
+!         if (get_key(&key) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 2112,2117 ****
+--- 2127,2133 ----
+      static String saved_shell;
+      const char *file = get_file_name(dl);
+      const char *cmd  = prompt("!");
++     char *shell;
+  
+      if (cmd == 0)
+      {
+***************
+*** 2127,2134 ****
+          //
+          // start up a shell
+          //
+!         if (saved_shell == "") saved_shell = getenv("SHELL");
+!         if (saved_shell == "") saved_shell = "sh";
+          saved_cmd = original_cmd = saved_shell;
+  
+          const char *slash = strrchr(saved_shell, '/');
+--- 2143,2159 ----
+          //
+          // start up a shell
+          //
+!         if (saved_shell == "") 
+! 	{
+! #ifdef __EMX__
+! 	    shell = getenv("COMSPEC");
+! 	    if (shell == NULL) shell = "cmd.exe";
+! #else
+! 	    shell = getenv("SHELL");
+! 	    if (shell == NULL) shell = "sh";
+! #endif
+! 	    saved_shell = shell;
+! 	}
+          saved_cmd = original_cmd = saved_shell;
+  
+          const char *slash = strrchr(saved_shell, '/');
+***************
+*** 2223,2229 ****
+  
+      char key;
+      while (1)
+!         if (read(0, &key, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 2248,2254 ----
+  
+      char key;
+      while (1)
+!         if (get_key(&key) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 2366,2371 ****
+--- 2391,2397 ----
+                break;
+            case KEY_b    :
+            case KEY_CTL_B:
++           case KEY_CTL_Z:
+  
+                if (dir_list->firstLine() == dir_list->head()) break;
+                scroll_down_full_window(dir_list);
+diff -cb orig/dired.cc ./dired.cc
+*** orig/dired.cc	Tue Nov 03 23:45:32 1992
+--- ./dired.cc	Fri Nov 06 13:49:28 1992
+***************
+*** 33,38 ****
+--- 33,43 ----
+  #include <signal.h>
+  #include <stdio.h>
+  #include <string.h>
++ #ifdef __EMX__
++ #include <io.h>
++ #include <fcntl.h>
++ #define chdir _chdir2
++ #endif
+  
+  #include "dired.h"
+  #include "display.h"
+***************
+*** 112,117 ****
+--- 117,128 ----
+  int main(int argc, char *argv[])
+  {
+      char *dirname;
++ 
++ #ifdef __EMX__
++     _wildcard(&argc, &argv);
++     _response(&argc, &argv);
++     setmode(1, O_BINARY);
++ #endif
+  
+      //
+      // Process options - the only options we accept are -t -u or -c.
+diff -cb orig/display.cc ./display.cc
+*** orig/display.cc	Tue Nov 03 23:45:34 1992
+--- ./display.cc	Thu Nov 19 23:24:36 1992
+***************
+*** 82,87 ****
+--- 82,89 ----
+  char *LE;               // cursor back one column
+  int   LI;               // number of rows
+  char *LL;               // cursor to lower left
++ char *MR;               // reverse mode
++ char *ME;               // end reverse mode
+  int   OS;               // terminal overstrikes?
+  char  PC;               // pad character
+  char *PCstr;            // pad string
+***************
+*** 145,150 ****
+--- 147,154 ----
+      KU = tgetstr("ku", &bp);
+      LE = tgetstr("le", &bp);
+      LL = tgetstr("ll", &bp);
++     MR = tgetstr("mr", &bp);
++     ME = tgetstr("me", &bp);
+      OS = tgetflag("os");
+      PCstr = tgetstr("pc", &bp);
+      SE = tgetstr("se", &bp);
+***************
+*** 168,175 ****
+  
+      if (!BC) BC = LE ? LE : "\b";
+      if (!CR) CR = "\r";
+!     if (!DO) DO = SF ? SF : "\n";
+  
+      const char *tmp = getenv("LINES");
+      if (tmp) LI = atoi(tmp);
+      tmp = getenv("COLUMNS");
+--- 172,185 ----
+  
+      if (!BC) BC = LE ? LE : "\b";
+      if (!CR) CR = "\r";
+!     /* if (!DO) DO = SF ? SF : "\n"; */
+  
++ #ifdef __EMX__
++     int sz[2];
++     _scrsize(sz);
++     CO = sz[0];
++     LI = sz[1];
++ #endif
+      const char *tmp = getenv("LINES");
+      if (tmp) LI = atoi(tmp);
+      tmp = getenv("COLUMNS");
+***************
+*** 375,389 ****
+  
+  void init_display()
+  {
+!     setvbuf(stdout, 0, _IOFBF, 0);  // fully buffer stdout
+      setvbuf(stdin , 0, _IONBF, 0);  // no buffering on stdin
+  
+      const char *term = getenv("TERM");
+      if (term == 0 || *term == 0)
+      {
+          (void)fputs("please set your TERM variable appropriately\n", stderr);
+          exit(1);
+      }
+  
+      termcap(term);
+  
+--- 385,403 ----
+  
+  void init_display()
+  {
+!     setvbuf(stdout, 0, _IOFBF, BUFSIZ);  // fully buffer stdout
+      setvbuf(stdin , 0, _IONBF, 0);  // no buffering on stdin
+  
+      const char *term = getenv("TERM");
+      if (term == 0 || *term == 0)
++ #ifdef __EMX__
++         term = "ansi";
++ #else
+      {
+          (void)fputs("please set your TERM variable appropriately\n", stderr);
+          exit(1);
+      }
++ #endif
+  
+      termcap(term);
+  
+***************
+*** 671,678 ****
+      else
+          for (int i = 0; i < rows()-y; i++)
+          {
+              clear_to_end_of_line();
+-             putchar('\n');
+          }
+  }
+  
+--- 685,692 ----
+      else
+          for (int i = 0; i < rows()-y; i++)
+          {
++ 	    move_cursor(y + i, 0);
+              clear_to_end_of_line();
+          }
+  }
+  
+diff -cb orig/display.h ./display.h
+*** orig/display.h	Tue Nov 03 23:45:26 1992
+--- ./display.h	Thu Nov 19 23:25:34 1992
+***************
+*** 58,63 ****
+--- 58,65 ----
+  extern char *LE;               // cursor back one column
+  extern int   LI;               // number of rows
+  extern char *LL;               // cursor to lower left
++ extern char *MR;               // reverse mode
++ extern char *ME;               // end reverse mode
+  extern int   OS;               // terminal overstrikes?
+  extern char  PC;               // pad character
+  extern char *PCstr;            // pad string
+***************
+*** 145,150 ****
+--- 147,156 ----
+  inline void end_cursor_addressing_mode() { output_string_capability(TE); }
+  
+  inline void enter_standout_mode() { output_string_capability(SO); }
++ 
++ inline void enter_reverse_mode() { output_string_capability(MR); }
++ 
++ inline void end_reverse_mode() { output_string_capability(ME); }
+  
+  inline void end_standout_mode() { output_string_capability(SE); }
+  
+diff -cb orig/keys.h ./keys.h
+*** orig/keys.h	Tue Nov 03 23:45:26 1992
+--- ./keys.h	Fri Nov 06 13:07:08 1992
+***************
+*** 79,84 ****
+--- 79,85 ----
+  // backward one window
+  const int KEY_b     = 'b';
+  const int KEY_CTL_B = 0x2;  // ASCII CTL-B
++ const int KEY_CTL_Z = 0x1A; // ASCII CTL-Z
+  
+  // abort from a prompt - CTL-G
+  //
+***************
+*** 104,106 ****
+--- 105,109 ----
+  const int KEY_QUIT = 0x1C; // ASCII CTL-\
+  
+  #endif /* __KEYS_H */
++ 
++ extern int          get_key(char *key);
+diff -cb orig/Makefile ./Makefile
+*** orig/Makefile	Tue Nov 03 23:47:52 1992
+--- ./Makefile	Thu Nov 19 23:26:56 1992
+***************
+*** 7,13 ****
+  #
+  # Your C++ compiler goes here.
+  #
+! CC = gcc
+  
+  #
+  # flags you need to compile:
+--- 7,14 ----
+  #
+  # Your C++ compiler goes here.
+  #
+! CC = gcc -O -Zomf -Zmt
+! O = .obj
+  
+  #
+  # flags you need to compile:
+***************
+*** 44,50 ****
+  #   in this case should be a no-op.  The best bet is to define this if
+  #   you have siginterrupt(2).  Note: Suns need this.
+  #
+! CFLAGS = -DCOMPLETION -O
+  
+  #
+  # Those flags needed to compile in the type of terminal
+--- 45,51 ----
+  #   in this case should be a no-op.  The best bet is to define this if
+  #   you have siginterrupt(2).  Note: Suns need this.
+  #
+! CFLAGS = -DCOMPLETION -DNO_SYMLINKS -DNO_LINKS
+  
+  #
+  # Those flags needed to compile in the type of terminal
+***************
+*** 67,86 ****
+  #                   -ltermlib on SYSV-like systems
+  #                   -lcurses on systems w/o the above libraries
+  #
+! LIBS = -ltermcap
+  
+  ##############################################################################
+  # nothing should need to be changed below here.
+  ##############################################################################
+  
+! SHELL     = /bin/sh
+! MAKESHELL = /bin/sh
+  
+  HDR  = classes.h dired.h display.h keys.h version.h
+  
+  MISC = dired.1 dired.lpr Makefile ChangeLog INSTALL MANIFEST README
+  
+! OBJ  = classes.o commands.o dired.o display.o utilities.o
+  
+  SRC  = classes.cc command1.cc command2.cc dired.cc display.cc globals.cc utilities.cc
+  
+--- 68,87 ----
+  #                   -ltermlib on SYSV-like systems
+  #                   -lcurses on systems w/o the above libraries
+  #
+! LIBS = -ltermcap -los2
+  
+  ##############################################################################
+  # nothing should need to be changed below here.
+  ##############################################################################
+  
+! #SHELL     = /bin/sh
+! #MAKESHELL = /bin/sh
+  
+  HDR  = classes.h dired.h display.h keys.h version.h
+  
+  MISC = dired.1 dired.lpr Makefile ChangeLog INSTALL MANIFEST README
+  
+! OBJ  = classes$O commands$O dired$O display$O utilities$O
+  
+  SRC  = classes.cc command1.cc command2.cc dired.cc display.cc globals.cc utilities.cc
+  
+***************
+*** 87,98 ****
+  #
+  # Sorry for including globals.cc in the compile line instead of the
+  # list of object files.  The Cfront 2.0 on my main development
+! # machine chokes when passed a list consisting solely of .o files.
+  #
+! dired: $(OBJ)
+  	$(CC) $(CFLAGS) -o $@ $(OBJ) globals.cc $(LIBS)
+  
+! display.o: display.cc display.h
+  	$(CC) $(CFLAGS) $(TERMFLAGS) -c display.cc
+  
+  #
+--- 88,99 ----
+  #
+  # Sorry for including globals.cc in the compile line instead of the
+  # list of object files.  The Cfront 2.0 on my main development
+! # machine chokes when passed a list consisting solely of $O files.
+  #
+! dired.exe: $(OBJ)
+  	$(CC) $(CFLAGS) -o $@ $(OBJ) globals.cc $(LIBS)
+  
+! display$O: display.cc display.h
+  	$(CC) $(CFLAGS) $(TERMFLAGS) -c display.cc
+  
+  #
+***************
+*** 99,112 ****
+  # Commands.cc is built from command1.cc and command2.cc the first time
+  # it is needed.  This is so that the shar files don't get too big.
+  #
+! commands.cc: command1.cc command2.cc
+! 	cat command1.cc command2.cc > commands.cc
+  
+  clean:
+! 	-rm -f core *.o dired
+  
+  realclean:
+! 	-rm -f command.cc core *.o *~ *..c dired
+  
+  #
+  # This depends on Rich Salz' cshar program.
+--- 100,113 ----
+  # Commands.cc is built from command1.cc and command2.cc the first time
+  # it is needed.  This is so that the shar files don't get too big.
+  #
+! #commands.cc: command1.cc command2.cc
+! #	cat command1.cc command2.cc > commands.cc
+  
+  clean:
+! 	-rm -f core *$O dired
+  
+  realclean:
+! 	-rm -f core *$O *~ *..c dired
+  
+  #
+  # This depends on Rich Salz' cshar program.
+***************
+*** 125,138 ****
+  #
+  # dependencies
+  #
+! classes.o   : classes.h dired.h
+! commands.o  : classes.h dired.h display.h keys.h command1.cc command2.cc
+! dired.o     : classes.h dired.h display.h
+! globals.o   : classes.h dired.h version.h
+! utilities.o : classes.h dired.h display.h keys.h
+  
+  
+! .SUFFIXES: .cc .o
+  
+! .cc.o:
+  	$(CC) $(CFLAGS) -c $*.cc
+--- 126,139 ----
+  #
+  # dependencies
+  #
+! classes$O   : classes.h dired.h
+! commands$O  : classes.h dired.h display.h keys.h commands.cc
+! dired$O     : classes.h dired.h display.h
+! globals$O   : classes.h dired.h version.h
+! utilities$O : classes.h dired.h display.h keys.h
+  
+  
+! .SUFFIXES: .cc $O
+  
+! .cc$O:
+  	$(CC) $(CFLAGS) -c $*.cc
+diff -cb orig/utilities.cc ./utilities.cc
+*** orig/utilities.cc	Tue Nov 03 23:45:48 1992
+--- ./utilities.cc	Thu Nov 19 23:26:34 1992
+***************
+*** 41,47 ****
+--- 41,56 ----
+  #include <sys/ioctl.h>
+  #include <sys/stat.h>
+  #include <sys/types.h>
++ 
++ #ifdef __EMX__
++ #include <io.h>
++ #include <process.h>
++ #define getcwd _getcwd2
++ #define DEVNULL "nul"
++ #else
+  #include <sys/wait.h>
++ #define DEVNULL "/dev/null"
++ #endif
+  
+  #ifdef COMPLETION
+  #include <dirent.h>
+***************
+*** 48,54 ****
+  #endif
+  
+  #include <string.h>
+! #include <sys/errno.h>
+  #include <unistd.h>
+  
+  #include "dired.h"
+--- 57,63 ----
+  #endif
+  
+  #include <string.h>
+! #include <errno.h>
+  #include <unistd.h>
+  
+  #include "dired.h"
+***************
+*** 204,210 ****
+  {
+      message("Reading directory ... ");
+  
+!     String cmd = String(ls_cmd[the_sort_order()]) + dirname + " 2>/dev/null";
+      FILE *fp = popen(cmd, "r");
+      if (fp == 0) return 0;
+      
+--- 213,219 ----
+  {
+      message("Reading directory ... ");
+  
+!     String cmd = String(ls_cmd[the_sort_order()]) + dirname + " 2>" + DEVNULL;
+      FILE *fp = popen(cmd, "r");
+      if (fp == 0) return 0;
+      
+***************
+*** 297,303 ****
+  {
+      static char *oldline;
+      move_to_modeline();
+!     enter_standout_mode();
+  
+      if (head == 0 && tail == 0)
+      {
+--- 306,312 ----
+  {
+      static char *oldline;
+      move_to_modeline();
+!     enter_reverse_mode();
+  
+      if (head == 0 && tail == 0)
+      {
+***************
+*** 305,311 ****
+          // Redisplay old modeline.
+          //
+          (void)fputs(oldline, stdout);
+!         end_standout_mode();
+          return;
+      }
+  
+--- 314,320 ----
+          // Redisplay old modeline.
+          //
+          (void)fputs(oldline, stdout);
+!         end_reverse_mode();
+          return;
+      }
+  
+***************
+*** 350,356 ****
+          (void)fputs(modeline, stdout);
+  
+      oldline = modeline;
+!     end_standout_mode();
+  }
+  
+  /*
+--- 359,365 ----
+          (void)fputs(modeline, stdout);
+  
+      oldline = modeline;
+!     end_reverse_mode();
+  }
+  
+  /*
+***************
+*** 499,505 ****
+      end_standout_mode();
+      char c;
+      while (1)
+!         if (read(0, &c, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 508,514 ----
+      end_standout_mode();
+      char c;
+      while (1)
+!         if (get_key(&c) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 539,545 ****
+  {
+      char c;
+      while(1)
+!         if (read(0, &c, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 548,554 ----
+  {
+      char c;
+      while(1)
+!         if (get_key(&c) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 567,573 ****
+  int execute(const char *file, const char *argv[], int closem)
+  {
+      int status;
+!     pid_t pid = fork();
+      switch(pid)
+      {
+        case -1: // error
+--- 576,588 ----
+  int execute(const char *file, const char *argv[], int closem)
+  {
+      int status;
+! #ifdef __EMX__
+!     status = spawnvp(P_WAIT, file, (char *const *)argv);
+!     set_signals();
+!     setraw();
+!     return status == 0 ? 1 : 0;
+! #else
+!     int pid = fork();
+      switch(pid)
+      {
+        case -1: // error
+***************
+*** 588,593 ****
+--- 603,609 ----
+          waitpid(pid, &status, 0);
+          return status == 0 ? 1 : 0;
+      }
++ #endif
+  }
+  
+  /*
+***************
+*** 835,841 ****
+      char key;
+      for (;;)
+      {
+!         if (read(0, &key, 1) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+--- 851,857 ----
+      char key;
+      for (;;)
+      {
+!         if (get_key(&key) < 0 // assume fails only when errno == EINTR
+  #ifdef SIGWINCH
+              || win_size_changed
+  #endif
+***************
+*** 1513,1515 ****
+--- 1529,1573 ----
+  }
+  
+  #endif /* NO_STRCHR */
++ 
++ 
++ #ifdef __EMX__
++ extern "C" int _read_kbd(int, int, int);
++ #endif
++ 
++ int get_key(char *key)
++ {
++ #ifdef __EMX__
++ again:
++   int c = _read_kbd(0, 1, 0);
++   if (c == 0)
++     switch (_read_kbd(0, 1, 0))
++     {
++     case 'G':
++       *key = '<';
++       break;
++     case 'O':
++       *key = '>';
++       break;
++     case 'H':
++       *key = 'P' - 64;
++       break;
++     case 'P':
++       *key = 'N' - 64;
++       break;
++     case 'I':
++       *key = 'Z' - 64;
++       break;
++     case 'Q':
++       *key = 'V' - 64;
++       break;
++     default:
++       goto again;
++     }
++   else
++     *key = c;
++   return *key == -1 ? -1 : 1;
++ #else
++   return read(0, key, 1);
++ #endif  
++ }
+diff -cb orig/README ./README
+*** orig/README	Thu Nov 19 23:34:30 1992
+--- ./README	Thu Nov 19 23:34:00 1992
+***************
+*** 56,58 ****
+--- 56,72 ----
+  THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
++ 
++ 
++ 
++ ---------
++ Ported to OS/2 by Kai Uwe Rommel, 11/19/1992
++ 
++ --
++ /* Kai Uwe Rommel                                      Muenchen, Germany *
++  * rommel@jonas.ucrc.sub.org                       Phone +49 89 723 4101 *
++  * rommel@informatik.tu-muenchen.de                  Fax +49 89 723 7889 */
++ 
++ DOS ... is still a real mode only non-reentrant interrupt
++ handler, and always will be.                -Russell Williams
